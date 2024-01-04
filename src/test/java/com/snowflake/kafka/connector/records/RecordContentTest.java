@@ -20,6 +20,7 @@ import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.snowflake.kafka.connector.Utils.TABLE_COLUMN_ENTITY_TYPE;
@@ -298,68 +299,69 @@ public class RecordContentTest {
     assert got.containsKey("\"ANSWER\"");
   }
 
-//  @Test
-//  public void testGetProcessedRecord() throws JsonProcessingException {
-//    SnowflakeJsonConverter jsonConverter = new SnowflakeJsonConverter();
-//    SchemaAndValue nullSchemaAndValue = jsonConverter.toConnectData(topic, null);
-//    String keyStr = "string";
-//
-//    // all null
-//    this.testGetProcessedRecordRunner(
-//        new SinkRecord(topic, partition, null, null, null, null, partition), "{}", "");
-//
-//    // null value
-//    this.testGetProcessedRecordRunner(
-//        new SinkRecord(
-//            topic,
-//            partition,
-//            Schema.STRING_SCHEMA,
-//            keyStr,
-//            nullSchemaAndValue.schema(),
-//            null,
-//            partition),
-//        "{}",
-//        keyStr);
-//    this.testGetProcessedRecordRunner(
-//        new SinkRecord(
-//            topic,
-//            partition,
-//            Schema.STRING_SCHEMA,
-//            keyStr,
-//            null,
-//            nullSchemaAndValue.value(),
-//            partition),
-//        "{}",
-//        keyStr);
-//
-//    // null key
-//    this.testGetProcessedRecordRunner(
-//        new SinkRecord(
-//            topic,
-//            partition,
-//            Schema.STRING_SCHEMA,
-//            null,
-//            nullSchemaAndValue.schema(),
-//            nullSchemaAndValue.value(),
-//            partition),
-//        "{}",
-//        "");
-//    try {
-//      this.testGetProcessedRecordRunner(
-//          new SinkRecord(
-//              topic,
-//              partition,
-//              null,
-//              keyStr,
-//              nullSchemaAndValue.schema(),
-//              nullSchemaAndValue.value(),
-//              partition),
-//          "{}",
-//          keyStr);
-//    } catch (SnowflakeKafkaConnectorException ex) {
-//      assert ex.checkErrorCode(SnowflakeErrors.ERROR_0010);
-//    }
-//  }
+  @Ignore
+  @Test
+  public void testGetProcessedRecord() throws JsonProcessingException {
+    SnowflakeJsonConverter jsonConverter = new SnowflakeJsonConverter();
+    SchemaAndValue nullSchemaAndValue = jsonConverter.toConnectData(topic, null);
+    String keyStr = "string";
+
+    // all null
+    this.testGetProcessedRecordRunner(
+        new SinkRecord(topic, partition, null, null, null, null, partition), "{}", "");
+
+    // null value
+    this.testGetProcessedRecordRunner(
+        new SinkRecord(
+            topic,
+            partition,
+            Schema.STRING_SCHEMA,
+            keyStr,
+            nullSchemaAndValue.schema(),
+            null,
+            partition),
+        "{}",
+        keyStr);
+    this.testGetProcessedRecordRunner(
+        new SinkRecord(
+            topic,
+            partition,
+            Schema.STRING_SCHEMA,
+            keyStr,
+            null,
+            nullSchemaAndValue.value(),
+            partition),
+        "{}",
+        keyStr);
+
+    // null key
+    this.testGetProcessedRecordRunner(
+        new SinkRecord(
+            topic,
+            partition,
+            Schema.STRING_SCHEMA,
+            null,
+            nullSchemaAndValue.schema(),
+            nullSchemaAndValue.value(),
+            partition),
+        "{}",
+        "");
+    try {
+      this.testGetProcessedRecordRunner(
+          new SinkRecord(
+              topic,
+              partition,
+              null,
+              keyStr,
+              nullSchemaAndValue.schema(),
+              nullSchemaAndValue.value(),
+              partition),
+          "{}",
+          keyStr);
+    } catch (SnowflakeKafkaConnectorException ex) {
+      assert ex.checkErrorCode(SnowflakeErrors.ERROR_0010);
+    }
+  }
 
   private void testGetProcessedRecordRunner(
       SinkRecord record, String expectedRecordContent, String expectedRecordMetadataKey)

@@ -6,6 +6,7 @@ import com.snowflake.kafka.connector.internal.TestUtils;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
@@ -282,21 +283,22 @@ public class UtilsTest {
             Utils.formatString(Utils.GET_EXCEPTION_FORMAT, customMessage, exceptionMessage, "[]"));
   }
 
-//  @Test
-//  public void testGetSnowflakeOAuthAccessToken() {
-//    Map<String, String> config = TestUtils.getConfForStreamingWithOAuth();
-//    if (config != null) {
-//      SnowflakeURL url = new SnowflakeURL(config.get(Utils.SF_URL));
-//      Utils.getSnowflakeOAuthAccessToken(
-//          url,
-//          config.get(Utils.SF_OAUTH_CLIENT_ID),
-//          config.get(Utils.SF_OAUTH_CLIENT_SECRET),
-//          config.get(Utils.SF_OAUTH_REFRESH_TOKEN));
-//      TestUtils.assertError(
-//          SnowflakeErrors.ERROR_1004,
-//          () -> Utils.getSnowflakeOAuthAccessToken(url, "INVALID", "INVALID", "INVALID"));
-//    }
-//  }
+  @Ignore
+  @Test
+  public void testGetSnowflakeOAuthAccessToken() {
+    Map<String, String> config = TestUtils.getConfForStreamingWithOAuth();
+    if (config != null) {
+      SnowflakeURL url = new SnowflakeURL(config.get(Utils.SF_URL));
+      Utils.getSnowflakeOAuthAccessToken(
+          url,
+          config.get(Utils.SF_OAUTH_CLIENT_ID),
+          config.get(Utils.SF_OAUTH_CLIENT_SECRET),
+          config.get(Utils.SF_OAUTH_REFRESH_TOKEN));
+      TestUtils.assertError(
+          SnowflakeErrors.ERROR_1004,
+          () -> Utils.getSnowflakeOAuthAccessToken(url, "INVALID", "INVALID", "INVALID"));
+    }
+  }
 
   @Test
   public void testQuoteNameIfNeeded() {
