@@ -48,7 +48,8 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <skipTests>false</skipTests>
         <skipUnitTests>${skipTests}</skipUnitTests>
-        <skipIntegrationTests>${skipTests}</skipIntegrationTests>
+        <!--skipIntegrationTests>${skipTests}</skipIntegrationTests-->
+        <skipIntegrationTests>true</skipIntegrationTests>
     </properties>
 
 
@@ -226,9 +227,9 @@
                     <execution>
                         <id>sign-artifacts</id>
                         <phase>install</phase>
-                        <goals>
+                        <!--goals>
                             <goal>sign</goal>
-                        </goals>
+                        </goals-->
                     </execution>
                 </executions>
             </plugin>

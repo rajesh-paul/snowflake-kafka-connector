@@ -63,8 +63,8 @@ public class ProcessRecordTest {
             getString(),
             getAvro(),
             mapper.readTree(
-                "{\"content\":{\"int\":222,\"TenantId\":101,\"EntityType\":\"testEntity\"},\"meta\":{\"offset\":0,\"topic\":\"test\",\"partition\":0,\"schema_id\":1,\"key\":\"string"
-                    + " value\"},\"TenantId\":101,\"EntityType\":\"testEntity\"}")),
+                "{\"content\":{\"int\":222,\"TenantId\":101,\"EntityType\":\"testEntity\",\"RowCreated\":\"1692358480222\"},\"meta\":{\"offset\":0,\"topic\":\"test\",\"partition\":0,\"schema_id\":1,\"key\":\"string"
+                    + " value\"},\"TenantId\":101,\"EntityType\":\"testEntity\",\"RowCreated\":\"1692358480222\"}")),
         new Case(
             "string key, avro without registry value",
             getString(),
@@ -173,7 +173,7 @@ public class ProcessRecordTest {
     SnowflakeAvroConverter avroConverter = new SnowflakeAvroConverter();
     avroConverter.setSchemaRegistry(client);
 
-    String value = "{\"int\":222,\"TenantId\":101,\"EntityType\":\"testEntity\"}";
+    String value = "{\"int\":222,\"TenantId\":101,\"EntityType\":\"testEntity\",\"RowCreated\":\"1692358480222\"}";
 
     return avroConverter.toConnectData(topic, client.serializeJson(value));
   }

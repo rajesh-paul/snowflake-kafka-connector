@@ -122,11 +122,11 @@ public class SnowflakeConnectionServiceV1 implements SnowflakeConnectionService 
     if (overwrite) {
       query =
           "create or replace table identifier(?) (record_metadata "
-              + "variant, record_content variant, tenant_id varchar, entity_type varchar)";
+              + "variant, record_content variant, tenant_id varchar, entity_type varchar, row_created varchar)";
     } else {
       query =
           "create table if not exists identifier(?) (record_metadata "
-              + "variant, record_content variant, tenant_id varchar, entity_type varchar)";
+              + "variant, record_content variant, tenant_id varchar, entity_type varchar, row_created varchar)";
     }
     try {
       PreparedStatement stmt = conn.prepareStatement(query);
@@ -973,7 +973,7 @@ public class SnowflakeConnectionServiceV1 implements SnowflakeConnectionService 
   private String pipeDefinition(String tableName, String stageName) {
     return "copy into "
         + tableName
-        + "(RECORD_METADATA, RECORD_CONTENT, TENANT_ID, ENTITY_TYPE) from (select $1:meta, $1:content, $1:tenantId, $1:entityType from"
+        + "(RECORD_METADATA, RECORD_CONTENT, TENANT_ID, ENTITY_TYPE, ROW_CREATED) from (select $1:meta, $1:content, $1:tenantId, $1:entityType, $1:rowCreated from"
         + " @"
         + stageName
         + " t) file_format = (type = 'json')";

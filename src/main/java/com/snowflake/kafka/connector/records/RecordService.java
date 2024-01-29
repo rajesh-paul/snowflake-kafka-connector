@@ -68,10 +68,9 @@ public class RecordService {
   static final String SCHEMA_ID = "schema_id";
   private static final String KEY_SCHEMA_ID = "key_schema_id";
   static final String HEADERS = "headers";
-
   static final String TENANT_ID = "tenantId";
-
   static final String ENTITY_TYPE = "entityType";
+  static final String ROW_CREATED = "rowCreated";
 
   private boolean enableSchematization = false;
   private SnowflakeSinkConnectorConfig.BehaviorOnNullValues behaviorOnNullValues =
@@ -175,6 +174,7 @@ public class RecordService {
     SnowflakeRecordContent valueContent;
     String tenantId;
     String entityType;
+    String rowCreated;
 
     if (record.value() == null || record.valueSchema() == null) {
       if (this.behaviorOnNullValues == SnowflakeSinkConnectorConfig.BehaviorOnNullValues.DEFAULT) {
@@ -219,18 +219,14 @@ public class RecordService {
       meta.set(HEADERS, parseHeaders(record.headers()));
     }
 
-    // extract tenantId from the Kafka record
+    // extract tenantId from the input Kafka record
     tenantId = extractTenantId(record);
-    if (Strings.isNullOrEmpty(tenantId)) {
-      throw new RuntimeException("Tenant Id is either null or empty in Kafka record.");
-    }
-    // extract entityType from the Kafka record
+    // extract entityType from the input Kafka record
     entityType = extractEntityType(record);
-    if (Strings.isNullOrEmpty(entityType)) {
-      throw new RuntimeException("Entity Type is either null or empty in Kafka record.");
-    }
+    // extract rowCreated from the input Kafka record
+    rowCreated = extractRowCreated(record);
 
-    return new SnowflakeTableRow(valueContent, meta, tenantId, entityType);
+    return new SnowflakeTableRow(valueContent, meta, tenantId, entityType, rowCreated);
   }
 
   /**
@@ -254,8 +250,10 @@ public class RecordService {
       try {
         data.set(TENANT_ID, MAPPER.valueToTree(row.tenantId));
         data.set(ENTITY_TYPE, MAPPER.valueToTree(row.entityType));
+        data.set(ROW_CREATED, MAPPER.valueToTree(row.rowCreated));
       } catch(Exception e) {
-        throw new RuntimeException("JsonProcessingException occurred while setting Tenant Id or Entity Type");
+        LOGGER.warn("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record: {}", e.getMessage());
+        LOGGER.error("Exception stacktrace is : {}", e.getStackTrace());
       }
 
       buffer.append(data.toString());
@@ -291,8 +289,14 @@ public class RecordService {
       if (metadataConfig.allFlag) {
         streamingIngestRow.put(TABLE_COLUMN_METADATA, MAPPER.writeValueAsString(row.metadata));
       }
-      streamingIngestRow.put(TABLE_COLUMN_TENANT_ID, row.tenantId);
-      streamingIngestRow.put(TABLE_COLUMN_ENTITY_TYPE, row.entityType);
+      try {
+        streamingIngestRow.put(TABLE_COLUMN_TENANT_ID, row.tenantId);
+        streamingIngestRow.put(TABLE_COLUMN_ENTITY_TYPE, row.entityType);
+        streamingIngestRow.put(TABLE_COLUMN_ROW_CREATED, row.rowCreated);
+      } catch(Exception e) {
+        LOGGER.warn("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record: {}", e.getMessage());
+        LOGGER.error("Exception stacktrace is : {}", e.getStackTrace());
+      }
     }
 
     return streamingIngestRow;
@@ -337,16 +341,16 @@ public class RecordService {
     // This can be a JsonNode but we will keep this as is.
     private final SnowflakeRecordContent content;
     private final JsonNode metadata;
-
     private final String tenantId;
-
     private final String entityType;
+    private final String rowCreated;
 
-    public SnowflakeTableRow(SnowflakeRecordContent content, JsonNode metadata, String tenantId, String entityType) {
+    public SnowflakeTableRow(SnowflakeRecordContent content, JsonNode metadata, String tenantId, String entityType, String rowCreated) {
       this.content = content;
       this.metadata = metadata;
       this.tenantId = tenantId;
       this.entityType = entityType;
+      this.rowCreated = rowCreated;
     }
   }
 
@@ -652,7 +656,9 @@ public class RecordService {
         }
       }
     } catch(Exception e) {
-      throw new RuntimeException("Exception occurred while extracting Tenant Id from the Kafka record.");
+      LOGGER.warn("Couldn't extract Tenant Id from Json Node for topic {}, partition {} and offset {} as the record may be invalid.",
+              record.topic(), record.kafkaPartition(), record.kafkaOffset());
+      LOGGER.error("The invalid Json Node (or record) data is: {}", record.value().toString());
     }
     return null;
   }
@@ -675,7 +681,34 @@ public class RecordService {
         }
       }
     } catch(Exception e) {
-      throw new RuntimeException("Exception occurred while extracting Entity Type from the Kafka record.");
+      LOGGER.warn("Couldn't extract Entity Type from Json Node for topic {}, partition {} and offset {} as the record may be invalid.",
+              record.topic(), record.kafkaPartition(), record.kafkaOffset());
+      LOGGER.error("The invalid Json Node (or record) data is: {}", record.value().toString());
+    }
+    return null;
+  }
+
+  /**
+   * Extract rowcreated from incoming Kafka record
+   *
+   * @param record record from Kafka
+   * @return rowcreated extracted from Kafka record
+   */
+  private String extractRowCreated(SinkRecord record) {
+    try {
+      if (record.value() != null && record.value() != "{}") {
+        SnowflakeRecordContent sfRecordContent = (SnowflakeRecordContent) record.value();
+        JsonNode[] jsonNodes = sfRecordContent.getData();
+        if (jsonNodes[0].size() > 0) {
+          if (!Strings.isNullOrEmpty(jsonNodes[0].get("RowCreated").toString())) {
+            return jsonNodes[0].get("RowCreated").asText();
+          }
+        }
+      }
+    } catch(Exception e) {
+      LOGGER.warn("Couldn't extract Row Created from Json Node for topic {}, partition {} and offset {} as the record may be invalid.",
+              record.topic(), record.kafkaPartition(), record.kafkaOffset());
+      LOGGER.error("The invalid Json Node (or record) data is: {}", record.value().toString());
     }
     return null;
   }

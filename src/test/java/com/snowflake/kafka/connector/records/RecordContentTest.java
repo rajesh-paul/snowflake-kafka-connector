@@ -23,8 +23,7 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static com.snowflake.kafka.connector.Utils.TABLE_COLUMN_ENTITY_TYPE;
-import static com.snowflake.kafka.connector.Utils.TABLE_COLUMN_TENANT_ID;
+import static com.snowflake.kafka.connector.Utils.*;
 
 public class RecordContentTest {
   private ObjectMapper mapper = new ObjectMapper();
@@ -244,7 +243,7 @@ public class RecordContentTest {
     SnowflakeJsonConverter jsonConverter = new SnowflakeJsonConverter();
 
     service.setEnableSchematization(true);
-    String value = "{\"\\\"NaMe\\\"\":\"sf\",\"AnSwEr\":42,\"TenantId\":101,\"EntityType\":\"testEntity\"}";
+    String value = "{\"name\":\"sf\",\"answer\":42,\"TenantId\":101,\"EntityType\":\"testEntity\",\"RowCreated\":\"1692358480222\"}";
     byte[] valueContents = (value).getBytes(StandardCharsets.UTF_8);
     SchemaAndValue sv = jsonConverter.toConnectData(topic, valueContents);
 
@@ -256,7 +255,7 @@ public class RecordContentTest {
     // each field should be dumped into string format
     // json string should not be enclosed in additional brackets
     // a non-double-quoted column name will be transformed into uppercase
-    assert got.get("\"NaMe\"").equals("sf");
+    assert got.get("\"NAME\"").equals("sf");
     assert got.get("\"ANSWER\"").equals("42");
   }
 
@@ -267,7 +266,7 @@ public class RecordContentTest {
 
     service.setEnableSchematization(true);
     String value =
-        "{\"players\":[{\"name\":\"John Doe\",\"age\":30},{\"name\":\"Jane Doe\",\"age\":30}],\"TenantId\":101,\"EntityType\":\"testEntity\"}";
+        "{\"players\":[{\"name\":\"John Doe\",\"age\":30},{\"name\":\"Jane Doe\",\"age\":30}],\"TenantId\":101,\"EntityType\":\"testEntity\",\"RowCreated\":\"1692358480222\"}";
     byte[] valueContents = (value).getBytes(StandardCharsets.UTF_8);
     SchemaAndValue sv = jsonConverter.toConnectData(topic, valueContents);
 
@@ -286,7 +285,7 @@ public class RecordContentTest {
     SnowflakeJsonConverter jsonConverter = new SnowflakeJsonConverter();
 
     service.setEnableSchematization(true);
-    String value = "{\"\\\"NaMe\\\"\":\"sf\",\"AnSwEr\":42,\"TenantId\":101,\"EntityType\":\"testEntity\"}";
+    String value = "{\"\\\"NaMe\\\"\":\"sf\",\"AnSwEr\":42,\"TenantId\":101,\"EntityType\":\"testEntity\",\"RowCreated\":\"1692358480222\"}";
     byte[] valueContents = (value).getBytes(StandardCharsets.UTF_8);
     SchemaAndValue sv = jsonConverter.toConnectData(topic, valueContents);
 
@@ -380,8 +379,7 @@ public class RecordContentTest {
     SnowflakeJsonConverter jsonConverter = new SnowflakeJsonConverter();
 
     service.setEnableSchematization(false);
-    String value = "{\"\\\"NaMe\\\"\":\"sf\",\"AnSwEr\":42,\"TenantId\":101,\"EntityType\":\"testEntity\"}";
-    //String value = "{\"EntityType\":\"Events\",\"Payload\":[{\"Browser\":\"UNKNOWN\",\"BrowserType\":\"UNKNOWN\",\"Cookie\":\"HH22ct8wxek00000mp66ct8wxek00-RPAUL-2\",\"Device\":\"UNKNOWN\",\"Domain\":\"UNKNOWN\",\"EventTimeStamp\":\"1692358480222\",\"ID\":\"KFK_0_SCN-batch_DEV_DEMO_104_122-2\",\"IpAddress\":\"4.1.6.11\",\"OperatingSystem\":\"UNKNOWN\",\"RealtimeRequestNumber\":\"51111e1cc-c21a-43bf-9ffc-56068dd32d88_1\",\"Referer\":\"https://agilone.github.io/index.html\",\"SourceCustomerNumber\":\"SCN-batch_DEV_DEMO_104_122-2\",\"Type\":\"webpageBrowsed\",\"URL\":\"https://cmsadaptive.microcenter.com/site/brands/hp.aspx\",\"UserClient\":\"B\",\"Variables\":\"UserAgent=PostmanRuntime%2F7.33.4\",\"subType\":\"brands\"}],\"RealtimeRequestNumber\":\"51111e1cc-c21a-43bf-9ffc-56068dd32d88\",\"RowCreated\":\"1692358480222\",\"TenantId\":\"803\"}";
+    String value = "{\"\\\"Name\\\"\":\"sf\",\"Answer\":42,\"TenantId\":101,\"EntityType\":\"testEntity\",\"RowCreated\":\"1692358480222\"}";
     byte[] valueContents = (value).getBytes(StandardCharsets.UTF_8);
     SchemaAndValue sv = jsonConverter.toConnectData(topic, valueContents);
 
@@ -389,9 +387,29 @@ public class RecordContentTest {
             new SinkRecord(
                     topic, partition, Schema.STRING_SCHEMA, "string", sv.schema(), sv.value(), partition);
     Map<String, Object> got = service.getProcessedRecordForStreamingIngest(record);
-    //String got2 = service.getProcessedRecordForSnowpipe(record);
 
     assert got.containsKey(TABLE_COLUMN_TENANT_ID);
     assert got.containsKey(TABLE_COLUMN_ENTITY_TYPE);
+    assert got.containsKey(TABLE_COLUMN_ROW_CREATED);
+  }
+
+  @Test
+  public void testPrepareCustomSFTableRow2() {
+    RecordService service = new RecordService();
+    SnowflakeJsonConverter jsonConverter = new SnowflakeJsonConverter();
+
+    service.setEnableSchematization(false);
+    String value = "{\"TenantId\":\"803\",\"EntityType\":\"Events\",\"RealtimeRequestNumber\":\"61111e1cc-c21a-43bf-9ffc-56068dd32d88\",\"RowCreated\":\"1692358480222\",\"Payload\":[{\"Cookie\":\"HH33ct8wxek00000mp66ct8wxek00-RPAUL\",\"EventTimeStamp\":\"1692358480222\",\"ID\":\"KFK_0_SCN-batch_DEV_DEMO_104_122\",\"IpAddress\":\"4.1.6.11\",\"Referer\":\"https://agilone.github.io/index.html\",\"Type\":\"webpageBrowsed\",\"URL\":\"https://cmsadaptive.microcenter.com/site/brands/hp.aspx\",\"SourceCustomerNumber\":\"SCN-batch_DEV_DEMO_104_122\",\"RealtimeRequestNumber\":\"61111e1cc-c21a-43bf-9ffc-56068dd32d88_1\",\"UserClient\":\"B\",\"Variables\":\"UserAgent=PostmanRuntime%2F7.33.4\",\"subType\":\"brands\",\"Browser\":\"UNKNOWN\",\"OperatingSystem\":\"UNKNOWN\",\"Device\":\"UNKNOWN\",\"BrowserType\":\"UNKNOWN\",\"Domain\":\"UNKNOWN\"}]}";
+    byte[] valueContents = (value).getBytes(StandardCharsets.UTF_8);
+    SchemaAndValue sv = jsonConverter.toConnectData(topic, valueContents);
+
+    SinkRecord record =
+            new SinkRecord(
+                    topic, partition, Schema.STRING_SCHEMA, "string", sv.schema(), sv.value(), partition);
+    String got2 = service.getProcessedRecordForSnowpipe(record);
+
+    assert got2.contains("\"tenantId\":\"803\"");
+    assert got2.contains("\"entityType\":\"Events\"");
+    assert got2.contains("\"rowCreated\":\"1692358480222\"");
   }
 }

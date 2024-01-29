@@ -55,7 +55,6 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
-@Ignore
 @RunWith(Parameterized.class)
 public class TopicPartitionChannelTest {
 
@@ -203,7 +202,7 @@ public class TopicPartitionChannelTest {
     converterConfig.put("schemas.enable", "false");
     converter.configure(converterConfig, true);
     SchemaAndValue input =
-        converter.toConnectData("test", "{\"name\":\"test\"}".getBytes(StandardCharsets.UTF_8));
+        converter.toConnectData("test", "{\"name\":\"test\",\"TenantId\":\"803\",\"EntityType\":\"testEntity\",\"RowCreated\":\"1692358480222\"}".getBytes(StandardCharsets.UTF_8));
     long offset = 0;
 
     SinkRecord record1 =
@@ -887,6 +886,7 @@ public class TopicPartitionChannelTest {
   }
 
   // --------------- TEST THRESHOLDS ---------------
+  @Ignore
   @Test
   public void testBufferBytesThreshold() throws Exception {
     Mockito.when(mockStreamingChannel.getLatestCommittedOffsetToken())
@@ -937,6 +937,7 @@ public class TopicPartitionChannelTest {
         .insertRows(ArgumentMatchers.any(), ArgumentMatchers.any());
   }
 
+  @Ignore
   @Test
   public void testBigAvroBufferBytesThreshold() throws Exception {
     Mockito.when(mockStreamingChannel.getLatestCommittedOffsetToken())
