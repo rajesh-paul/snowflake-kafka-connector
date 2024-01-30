@@ -172,9 +172,6 @@ public class RecordService {
    */
   private SnowflakeTableRow processRecord(SinkRecord record) {
     SnowflakeRecordContent valueContent;
-    String tenantId;
-    String entityType;
-    String rowCreated;
 
     if (record.value() == null || record.valueSchema() == null) {
       if (this.behaviorOnNullValues == SnowflakeSinkConnectorConfig.BehaviorOnNullValues.DEFAULT) {
@@ -219,14 +216,10 @@ public class RecordService {
       meta.set(HEADERS, parseHeaders(record.headers()));
     }
 
-    // extract tenantId from the input Kafka record
-    tenantId = extractTenantId(record);
-    // extract entityType from the input Kafka record
-    entityType = extractEntityType(record);
-    // extract rowCreated from the input Kafka record
-    rowCreated = extractRowCreated(record);
+    // extract tenantId, entityType and rowCreated from the input Kafka record
+    Map<String, String> landingDataMap = extractLandingData(record);
 
-    return new SnowflakeTableRow(valueContent, meta, tenantId, entityType, rowCreated);
+    return new SnowflakeTableRow(valueContent, meta, landingDataMap.get(TENANT_ID), landingDataMap.get(ENTITY_TYPE), landingDataMap.get(ROW_CREATED));
   }
 
   /**
@@ -252,7 +245,7 @@ public class RecordService {
         data.set(ENTITY_TYPE, MAPPER.valueToTree(row.entityType));
         data.set(ROW_CREATED, MAPPER.valueToTree(row.rowCreated));
       } catch(Exception e) {
-        LOGGER.warn("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record: {}", e.getMessage());
+        LOGGER.warn("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record. Exception message: {}", e.getMessage());
         LOGGER.error("Exception stacktrace is : {}", e.getStackTrace());
       }
 
@@ -294,7 +287,7 @@ public class RecordService {
         streamingIngestRow.put(TABLE_COLUMN_ENTITY_TYPE, row.entityType);
         streamingIngestRow.put(TABLE_COLUMN_ROW_CREATED, row.rowCreated);
       } catch(Exception e) {
-        LOGGER.warn("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record: {}", e.getMessage());
+        LOGGER.warn("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record. Exception message: {}", e.getMessage());
         LOGGER.error("Exception stacktrace is : {}", e.getStackTrace());
       }
     }
@@ -639,77 +632,34 @@ public class RecordService {
   }
 
   /**
-   * Extract tenant id from incoming Kafka record
+   * Extract tenantId, entityType and rowCreated from input Kafka record
    *
    * @param record record from Kafka
-   * @return tenantId extracted from Kafka record
+   * @return A Map containing tenantId, entityType and rowCreated extracted from Kafka record
    */
-  private String extractTenantId(SinkRecord record) {
+  private Map<String, String> extractLandingData(SinkRecord record) {
+    Map<String, String> hashMap = new HashMap<>();
     try {
       if (record.value() != null && record.value() != "{}") {
         SnowflakeRecordContent sfRecordContent = (SnowflakeRecordContent) record.value();
         JsonNode[] jsonNodes = sfRecordContent.getData();
         if (jsonNodes[0].size() > 0) {
           if (!Strings.isNullOrEmpty(jsonNodes[0].get("TenantId").toString())) {
-            return jsonNodes[0].get("TenantId").asText();
+            hashMap.put(TENANT_ID, jsonNodes[0].get("TenantId").asText());
           }
-        }
-      }
-    } catch(Exception e) {
-      LOGGER.warn("Couldn't extract Tenant Id from Json Node for topic {}, partition {} and offset {} as the record may be invalid.",
-              record.topic(), record.kafkaPartition(), record.kafkaOffset());
-      LOGGER.error("The invalid Json Node (or record) data is: {}", record.value().toString());
-    }
-    return null;
-  }
-
-  /**
-   * Extract entity type from incoming Kafka record
-   *
-   * @param record record from Kafka
-   * @return entity type extracted from Kafka record
-   */
-  private String extractEntityType(SinkRecord record) {
-    try {
-      if (record.value() != null && record.value() != "{}") {
-        SnowflakeRecordContent sfRecordContent = (SnowflakeRecordContent) record.value();
-        JsonNode[] jsonNodes = sfRecordContent.getData();
-        if (jsonNodes[0].size() > 0) {
           if (!Strings.isNullOrEmpty(jsonNodes[0].get("EntityType").toString())) {
-            return jsonNodes[0].get("EntityType").asText();
+            hashMap.put(ENTITY_TYPE, jsonNodes[0].get("EntityType").asText());
           }
-        }
-      }
-    } catch(Exception e) {
-      LOGGER.warn("Couldn't extract Entity Type from Json Node for topic {}, partition {} and offset {} as the record may be invalid.",
-              record.topic(), record.kafkaPartition(), record.kafkaOffset());
-      LOGGER.error("The invalid Json Node (or record) data is: {}", record.value().toString());
-    }
-    return null;
-  }
-
-  /**
-   * Extract rowcreated from incoming Kafka record
-   *
-   * @param record record from Kafka
-   * @return rowcreated extracted from Kafka record
-   */
-  private String extractRowCreated(SinkRecord record) {
-    try {
-      if (record.value() != null && record.value() != "{}") {
-        SnowflakeRecordContent sfRecordContent = (SnowflakeRecordContent) record.value();
-        JsonNode[] jsonNodes = sfRecordContent.getData();
-        if (jsonNodes[0].size() > 0) {
           if (!Strings.isNullOrEmpty(jsonNodes[0].get("RowCreated").toString())) {
-            return jsonNodes[0].get("RowCreated").asText();
+            hashMap.put(ROW_CREATED, jsonNodes[0].get("RowCreated").asText());
           }
         }
       }
     } catch(Exception e) {
-      LOGGER.warn("Couldn't extract Row Created from Json Node for topic {}, partition {} and offset {} as the record may be invalid.",
+      LOGGER.warn("Couldn't extract Tenant Id, Entity Type or Row Created from Json Node for topic {}, partition {} and offset {} as the record may be invalid.",
               record.topic(), record.kafkaPartition(), record.kafkaOffset());
       LOGGER.error("The invalid Json Node (or record) data is: {}", record.value().toString());
     }
-    return null;
+    return hashMap;
   }
 }
