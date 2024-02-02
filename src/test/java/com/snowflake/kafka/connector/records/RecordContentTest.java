@@ -20,7 +20,6 @@ import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.snowflake.kafka.connector.Utils.*;
@@ -298,7 +297,6 @@ public class RecordContentTest {
     assert got.containsKey("\"ANSWER\"");
   }
 
-  @Ignore
   @Test
   public void testGetProcessedRecord() throws JsonProcessingException {
     SnowflakeJsonConverter jsonConverter = new SnowflakeJsonConverter();
@@ -368,7 +366,7 @@ public class RecordContentTest {
     RecordService service = new RecordService();
     Map<String, Object> recordData = service.getProcessedRecordForStreamingIngest(record);
 
-    assert recordData.size() == 4;
+    assert recordData.size() == 5;
     assert recordData.get("RECORD_CONTENT").equals(expectedRecordContent);
     assert recordData.get("RECORD_METADATA").toString().contains(expectedRecordMetadataKey);
   }

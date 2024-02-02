@@ -245,8 +245,7 @@ public class RecordService {
         data.set(ENTITY_TYPE, MAPPER.valueToTree(row.entityType));
         data.set(ROW_CREATED, MAPPER.valueToTree(row.rowCreated));
       } catch(Exception e) {
-        LOGGER.warn("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record. Exception message: {}", e.getMessage());
-        LOGGER.error("Exception stacktrace is : {}", e.getStackTrace());
+        LOGGER.error("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record. Exception message: {}. Exception stacktrace is : {}", e.getMessage(), e.getStackTrace());
       }
 
       buffer.append(data.toString());
@@ -287,8 +286,7 @@ public class RecordService {
         streamingIngestRow.put(TABLE_COLUMN_ENTITY_TYPE, row.entityType);
         streamingIngestRow.put(TABLE_COLUMN_ROW_CREATED, row.rowCreated);
       } catch(Exception e) {
-        LOGGER.warn("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record. Exception message: {}", e.getMessage());
-        LOGGER.error("Exception stacktrace is : {}", e.getStackTrace());
+        LOGGER.error("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record. Exception message: {}. Exception stacktrace is : {}", e.getMessage(), e.getStackTrace());
       }
     }
 
@@ -638,28 +636,26 @@ public class RecordService {
    * @return A Map containing tenantId, entityType and rowCreated extracted from Kafka record
    */
   private Map<String, String> extractLandingData(SinkRecord record) {
-    Map<String, String> hashMap = new HashMap<>();
+    Map<String, String> dataMap = new HashMap<>();
     try {
       if (record.value() != null && record.value() != "{}") {
         SnowflakeRecordContent sfRecordContent = (SnowflakeRecordContent) record.value();
         JsonNode[] jsonNodes = sfRecordContent.getData();
         if (jsonNodes[0].size() > 0) {
           if (!Strings.isNullOrEmpty(jsonNodes[0].get("TenantId").toString())) {
-            hashMap.put(TENANT_ID, jsonNodes[0].get("TenantId").asText());
+            dataMap.put(TENANT_ID, jsonNodes[0].get("TenantId").asText());
           }
           if (!Strings.isNullOrEmpty(jsonNodes[0].get("EntityType").toString())) {
-            hashMap.put(ENTITY_TYPE, jsonNodes[0].get("EntityType").asText());
+            dataMap.put(ENTITY_TYPE, jsonNodes[0].get("EntityType").asText());
           }
           if (!Strings.isNullOrEmpty(jsonNodes[0].get("RowCreated").toString())) {
-            hashMap.put(ROW_CREATED, jsonNodes[0].get("RowCreated").asText());
+            dataMap.put(ROW_CREATED, jsonNodes[0].get("RowCreated").asText());
           }
         }
       }
     } catch(Exception e) {
-      LOGGER.warn("Couldn't extract Tenant Id, Entity Type or Row Created from Json Node for topic {}, partition {} and offset {} as the record may be invalid.",
-              record.topic(), record.kafkaPartition(), record.kafkaOffset());
-      LOGGER.error("The invalid Json Node (or record) data is: {}", record.value().toString());
+      LOGGER.error("Couldn't extract Tenant Id, Entity Type or Row Created from Json Node for topic {}, partition {} and offset {} as the record may be invalid. The invalid Json Node (or record) data is: {}", record.topic(), record.kafkaPartition(), record.kafkaOffset(), record.value().toString());
     }
-    return hashMap;
+    return dataMap;
   }
 }
