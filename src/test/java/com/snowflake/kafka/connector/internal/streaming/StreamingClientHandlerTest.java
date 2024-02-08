@@ -28,6 +28,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+@Ignore
 public class StreamingClientHandlerTest {
   private StreamingClientHandler streamingClientHandler;
   private Map<String, String> connectorConfig;

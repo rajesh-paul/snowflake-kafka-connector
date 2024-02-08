@@ -16,10 +16,8 @@
  */
 package com.snowflake.kafka.connector.records;
 
-import static com.snowflake.kafka.connector.Utils.TABLE_COLUMN_CONTENT;
-import static com.snowflake.kafka.connector.Utils.TABLE_COLUMN_METADATA;
-
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import com.snowflake.kafka.connector.SnowflakeSinkConnectorConfig;
 import com.snowflake.kafka.connector.Utils;
 import com.snowflake.kafka.connector.internal.KCLogger;
@@ -53,6 +51,8 @@ import org.apache.kafka.connect.header.Header;
 import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.sink.SinkRecord;
 
+import static com.snowflake.kafka.connector.Utils.*;
+
 public class RecordService {
   private final KCLogger LOGGER = new KCLogger(RecordService.class.getName());
 
@@ -68,6 +68,9 @@ public class RecordService {
   static final String SCHEMA_ID = "schema_id";
   private static final String KEY_SCHEMA_ID = "key_schema_id";
   static final String HEADERS = "headers";
+  static final String TENANT_ID = "tenantId";
+  static final String ENTITY_TYPE = "entityType";
+  static final String ROW_CREATED = "rowCreated";
 
   private boolean enableSchematization = false;
   private SnowflakeSinkConnectorConfig.BehaviorOnNullValues behaviorOnNullValues =
@@ -213,7 +216,10 @@ public class RecordService {
       meta.set(HEADERS, parseHeaders(record.headers()));
     }
 
-    return new SnowflakeTableRow(valueContent, meta);
+    // extract tenantId, entityType and rowCreated from the input Kafka record
+    Map<String, String> landingDataMap = extractLandingData(record);
+
+    return new SnowflakeTableRow(valueContent, meta, landingDataMap.get(TENANT_ID), landingDataMap.get(ENTITY_TYPE), landingDataMap.get(ROW_CREATED));
   }
 
   /**
@@ -234,6 +240,14 @@ public class RecordService {
       if (metadataConfig.allFlag) {
         data.set(META, row.metadata);
       }
+      try {
+        data.set(TENANT_ID, MAPPER.valueToTree(row.tenantId));
+        data.set(ENTITY_TYPE, MAPPER.valueToTree(row.entityType));
+        data.set(ROW_CREATED, MAPPER.valueToTree(row.rowCreated));
+      } catch(Exception e) {
+        LOGGER.error("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record. Exception message: {}. Exception stacktrace is : {}", e.getMessage(), e.getStackTrace());
+      }
+
       buffer.append(data.toString());
     }
     return buffer.toString();
@@ -266,6 +280,13 @@ public class RecordService {
       }
       if (metadataConfig.allFlag) {
         streamingIngestRow.put(TABLE_COLUMN_METADATA, MAPPER.writeValueAsString(row.metadata));
+      }
+      try {
+        streamingIngestRow.put(TABLE_COLUMN_TENANT_ID, row.tenantId);
+        streamingIngestRow.put(TABLE_COLUMN_ENTITY_TYPE, row.entityType);
+        streamingIngestRow.put(TABLE_COLUMN_ROW_CREATED, row.rowCreated);
+      } catch(Exception e) {
+        LOGGER.error("Exception occurred while setting Tenant Id, Entity Type or Row Created from input JSON record. Exception message: {}. Exception stacktrace is : {}", e.getMessage(), e.getStackTrace());
       }
     }
 
@@ -311,10 +332,16 @@ public class RecordService {
     // This can be a JsonNode but we will keep this as is.
     private final SnowflakeRecordContent content;
     private final JsonNode metadata;
+    private final String tenantId;
+    private final String entityType;
+    private final String rowCreated;
 
-    public SnowflakeTableRow(SnowflakeRecordContent content, JsonNode metadata) {
+    public SnowflakeTableRow(SnowflakeRecordContent content, JsonNode metadata, String tenantId, String entityType, String rowCreated) {
       this.content = content;
       this.metadata = metadata;
+      this.tenantId = tenantId;
+      this.entityType = entityType;
+      this.rowCreated = rowCreated;
     }
   }
 
@@ -600,5 +627,35 @@ public class RecordService {
       }
     }
     return false;
+  }
+
+  /**
+   * Extract tenantId, entityType and rowCreated from input Kafka record
+   *
+   * @param record record from Kafka
+   * @return A Map containing tenantId, entityType and rowCreated extracted from Kafka record
+   */
+  private Map<String, String> extractLandingData(SinkRecord record) {
+    Map<String, String> dataMap = new HashMap<>();
+    try {
+      if (record.value() != null && record.value() != "{}") {
+        SnowflakeRecordContent sfRecordContent = (SnowflakeRecordContent) record.value();
+        JsonNode[] jsonNodes = sfRecordContent.getData();
+        if (jsonNodes[0].size() > 0) {
+          if (!Strings.isNullOrEmpty(jsonNodes[0].get("TenantId").toString())) {
+            dataMap.put(TENANT_ID, jsonNodes[0].get("TenantId").asText());
+          }
+          if (!Strings.isNullOrEmpty(jsonNodes[0].get("EntityType").toString())) {
+            dataMap.put(ENTITY_TYPE, jsonNodes[0].get("EntityType").asText());
+          }
+          if (!Strings.isNullOrEmpty(jsonNodes[0].get("RowCreated").toString())) {
+            dataMap.put(ROW_CREATED, jsonNodes[0].get("RowCreated").asText());
+          }
+        }
+      }
+    } catch(Exception e) {
+      LOGGER.error("Couldn't extract Tenant Id, Entity Type or Row Created from Json Node for topic {}, partition {} and offset {} as the record may be invalid. The invalid Json Node (or record) data is: {}", record.topic(), record.kafkaPartition(), record.kafkaOffset(), record.value().toString());
+    }
+    return dataMap;
   }
 }

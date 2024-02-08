@@ -163,6 +163,16 @@ public class TestUtils {
           + "        \"type\": \"string\",\n"
           + "        \"optional\": false,\n"
           + "        \"field\": \"gender\"\n"
+          + "      },\n"
+          + "      {\n"
+          + "        \"type\": \"string\",\n"
+          + "        \"optional\": false,\n"
+          + "        \"field\": \"TenantId\"\n"
+          + "      },\n"
+          + "      {\n"
+          + "        \"type\": \"string\",\n"
+          + "        \"optional\": false,\n"
+          + "        \"field\": \"EntityType\"\n"
           + "      }\n"
           + "    ],\n"
           + "    \"optional\": false,\n"
@@ -170,7 +180,10 @@ public class TestUtils {
           + "  },\n"
           + "  \"payload\": {\n"
           + "    \"regionid\": \"Region_5\",\n"
-          + "    \"gender\": \"FEMALE\"\n"
+          + "    \"gender\": \"FEMALE\",\n"
+          + "    \"TenantId\": \"101\",\n"
+          + "    \"EntityType\": \"testEntity\",\n"
+          + "    \"RowCreated\": \"1692358480222\"\n"
           + "  }\n"
           + "}";
   public static final String JSON_WITHOUT_SCHEMA = "{\"userid\": \"User_1\"}";
@@ -621,7 +634,7 @@ public class TestUtils {
       final long startOffset, final long noOfRecords, final String topicName, final int partitionNo)
       throws Exception {
     ArrayList<SinkRecord> records = new ArrayList<>();
-    String json = "{ \"f1\" : \"v1\" } ";
+    String json = "{ \"f1\" : \"v1\",\"TenantId\":\"803\",\"EntityType\":\"testEntity\",\"RowCreated\":\"1692358480222\" } ";
     ObjectMapper objectMapper = new ObjectMapper();
     Schema snowflakeSchema = new SnowflakeJsonSchema();
     SnowflakeRecordContent content = new SnowflakeRecordContent(objectMapper.readTree(json));
@@ -697,7 +710,7 @@ public class TestUtils {
       for (int innerSegment = 0; innerSegment < innerSegmentLength; innerSegment++) {
         outerItem.put(
             "segment_" + outerSegment + "_" + innerSegment,
-            "segment_" + outerSegment + "_" + innerSegment);
+            "segment_" + outerSegment + "_" + innerSegment + ",\"TenantId\":\"803\",\"EntityType\":\"testEntity\",\"RowCreated\":\"1692358480222\"");
       }
       items.add(outerItem);
     }
